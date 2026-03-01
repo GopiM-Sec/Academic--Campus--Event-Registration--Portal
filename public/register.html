@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Campus Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .register-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        #event-details {
+            background: rgba(79, 70, 229, 0.05);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--primary-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <nav>
+            <div class="logo">CampusPortal</div>
+            <div class="nav-links">
+                <a href="/index.html">Upcoming Events</a>
+                <a href="/admin.html">Admin Dashboard</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="register-container glass-panel">
+            <h1 class="text-center" style="margin-bottom: 0.5rem;">Join Event</h1>
+            <p class="text-center">Fill out the form below to secure your spot.</p>
+
+            <div id="event-details">
+                <div class="loader" style="width:20px; height:20px; border-width: 2px;"></div>
+                <span style="margin-left: 10px;">Loading event details...</span>
+            </div>
+
+            <div id="register-alert"></div>
+
+            <form id="registration-form" style="display: none;">
+                <!-- Hidden input for the dynamic event ID -->
+                <input type="hidden" id="event_id">
+
+                <div class="form-group">
+                    <label for="name">Full Name *</label>
+                    <input type="text" id="name" class="form-control" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="email">University Email *</label>
+                    <input type="email" id="email" class="form-control" required placeholder="john@university.edu">
+                </div>
+                <div class="form-group">
+                    <label for="student_id">Student / Staff ID (Optional)</label>
+                    <input type="text" id="student_id" class="form-control" placeholder="12345678">
+                </div>
+
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; font-size: 1.1rem; padding: 1rem;">Confirm Registration</button>
+            </form>
+
+            <div class="text-center" style="margin-top: 1rem;">
+                <a href="/index.html">← Back to Events</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get event ID from URL query parameters (e.g., ?id=1)
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventId = urlParams.get('id');
+
+            const detailsDiv = document.getElementById('event-details');
+            const form = document.getElementById('registration-form');
+
+            if (!eventId) {
+                detailsDiv.innerHTML = '<span style="color: red; font-weight: 600;">Error: No event selected. Please select an event from the home page.</span>';
+                return;
+            }
+
+            try {
+                // Fetch the specific event details
+                const res = await fetch(`/api/events/${eventId}`);
+                if (!res.ok) throw new Error('Event not found');
+
+                const event = await res.json();
+
+                document.getElementById('event_id').value = event.id;
+                detailsDiv.innerHTML = `
+                    <h3 style="margin-bottom: 0.25rem;">${event.title}</h3>
+                    <div style="font-size: 0.9rem; color: var(--text-muted)">
+                        📅 ${new Date(event.date).toLocaleString()} <br>
+                        📍 ${event.location || 'TBA'}
+                    </div>
+                `;
+
+                form.style.display = 'block';
+
+            } catch (err) {
+                detailsDiv.innerHTML = '<span style="color: red; font-weight: 600;">Error: Failed to load event details. It may have been removed.</span>';
+            }
+
+            // Handle Form Submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await submitRegistration();
+            });
+        });
+
+        async function submitRegistration() {
+            const btn = document.querySelector('#registration-form button');
+            const alertBox = document.getElementById('register-alert');
+
+            btn.textContent = 'Processing...';
+            btn.disabled = true;
+
+            const payload = {
+                event_id: document.getElementById('event_id').value,
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                student_id: document.getElementById('student_id').value || null
+            };
+
+            try {
+                const res = await fetch('/api/registrations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alertBox.innerHTML = '<div class="alert alert-success">Registration successful! We look forward to seeing you.</div>';
+                    document.getElementById('registration-form').reset();
+                    // Optionally disable the form to prevent double submission
+                } else {
+                    alertBox.innerHTML = `<div class="alert alert-error">${data.error || 'Failed to register'}</div>`;
+                }
+            } catch (err) {
+                alertBox.innerHTML = '<div class="alert alert-error">Network error occurred while submitting.</div>';
+            } finally {
+                btn.textContent = 'Confirm Registration';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

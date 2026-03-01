@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details - Campus Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .event-hero {
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            padding: 4rem 2rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            blur: 40px;
+        }
+
+        .event-hero h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .event-info-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-card h3 {
+            color: var(--secondary-color);
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .event-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <nav>
+            <div class="logo">CampusPortal</div>
+            <div class="nav-links">
+                <a href="/index.html">Upcoming Events</a>
+                <a href="/admin.html">Admin Dashboard</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div id="loader" class="loader"></div>
+        <div id="error-message" class="alert alert-error" style="display: none;"></div>
+
+        <div id="event-content" style="display: none;">
+            <div class="event-hero">
+                <h1 id="event-title">Event Title</h1>
+                <p id="hero-meta" style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 0;">📅 Date |
+                    📍 Location</p>
+            </div>
+
+            <div class="event-info-grid">
+                <div class="main-content">
+                    <div class="info-card">
+                        <h3>About This Event</h3>
+                        <p id="event-description"
+                            style="white-space: pre-line; color: var(--text-main); line-height: 1.8;">
+                            Loading description...
+                        </p>
+                    </div>
+                </div>
+
+                <div class="sidebar">
+                    <div class="info-card" style="position: sticky; top: 100px;">
+                        <h3>Registration</h3>
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Total
+                                Capacity:</div>
+                            <div id="event-capacity"
+                                style="font-weight: 600; font-size: 1.1rem; color: var(--secondary-color);">Unlimited
+                            </div>
+                        </div>
+                        <a id="register-btn" href="#" class="btn btn-primary"
+                            style="width: 100%; text-align: center; font-size: 1.1rem;">Register Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventId = urlParams.get('id');
+            const loader = document.getElementById('loader');
+            const errorMsg = document.getElementById('error-message');
+            const content = document.getElementById('event-content');
+
+            if (!eventId) {
+                loader.style.display = 'none';
+                errorMsg.textContent = 'No event specified.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/events/${eventId}`);
+                if (!res.ok) throw new Error('Event not found');
+
+                const event = await res.json();
+
+                // Populate UI
+                document.getElementById('event-title').textContent = event.title;
+                document.getElementById('hero-meta').textContent = `📅 ${new Date(event.date).toLocaleString()} | 📍 ${event.location || 'TBA'}`;
+                document.getElementById('event-description').textContent = event.description || 'No detailed description available.';
+                document.getElementById('event-capacity').textContent = event.capacity ? `${event.capacity} seats` : 'Open to all';
+
+                document.getElementById('register-btn').href = `/register.html?id=${event.id}`;
+
+                loader.style.display = 'none';
+                content.style.display = 'block';
+            } catch (err) {
+                loader.style.display = 'none';
+                errorMsg.textContent = 'Failed to load event details. It may have been removed.';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>

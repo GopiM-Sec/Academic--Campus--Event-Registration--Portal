@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Campus Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .admin-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <nav>
+            <div class="logo">CampusPortal Admin</div>
+            <div class="nav-links">
+                <a href="/index.html">View Events</a>
+                <a href="/admin.html" class="active">Dashboard</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="text-center mb-2">
+            <h1>Admin Dashboard</h1>
+            <p>Manage campus events and view registrations.</p>
+        </div>
+
+        <div class="admin-layout">
+            <!-- Create Event Form -->
+            <div class="glass-panel">
+                <h2>Create New Event</h2>
+                <div id="event-alert"></div>
+                <form id="create-event-form">
+                    <div class="form-group">
+                        <label for="title">Event Title *</label>
+                        <input type="text" id="title" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date & Time *</label>
+                        <input type="datetime-local" id="date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="capacity">Capacity (Optional)</label>
+                        <input type="number" id="capacity" class="form-control" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" class="form-control"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Create Event</button>
+                </form>
+            </div>
+
+            <!-- View Registrations -->
+            <div class="glass-panel">
+                <h2>View Registrations</h2>
+                <div class="form-group">
+                    <label for="event-select">Select an Event</label>
+                    <select id="event-select" class="form-control">
+                        <option value="">-- Loading events... --</option>
+                    </select>
+                </div>
+
+                <div id="registrations-list" style="margin-top: 1rem;">
+                    <!-- Registrations will populate here -->
+                    <p class="text-center" style="color: var(--text-muted)">Select an event to see attendees.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEventsForSelect();
+
+            document.getElementById('create-event-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await createEvent();
+            });
+
+            document.getElementById('event-select').addEventListener('change', async (e) => {
+                if (e.target.value) {
+                    await loadRegistrations(e.target.value);
+                } else {
+                    document.getElementById('registrations-list').innerHTML = '<p class="text-center">Select an event to see attendees.</p>';
+                }
+            });
+        });
+
+        async function createEvent() {
+            const btn = document.querySelector('#create-event-form button');
+            const alertBox = document.getElementById('event-alert');
+
+            btn.textContent = 'Creating...';
+            btn.disabled = true;
+
+            const payload = {
+                title: document.getElementById('title').value,
+                date: document.getElementById('date').value,
+                location: document.getElementById('location').value,
+                capacity: document.getElementById('capacity').value || null,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                const res = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alertBox.innerHTML = '<div class="alert alert-success">Event created successfully!</div>';
+                    document.getElementById('create-event-form').reset();
+                    loadEventsForSelect(); // Reload dropdown
+                } else {
+                    alertBox.innerHTML = `<div class="alert alert-error">${data.error || 'Failed to create event'}</div>`;
+                }
+            } catch (err) {
+                alertBox.innerHTML = '<div class="alert alert-error">Network error occurred.</div>';
+            } finally {
+                btn.textContent = 'Create Event';
+                btn.disabled = false;
+                setTimeout(() => alertBox.innerHTML = '', 4000);
+            }
+        }
+
+        async function loadEventsForSelect() {
+            const select = document.getElementById('event-select');
+            try {
+                const res = await fetch('/api/events');
+                const events = await res.json();
+
+                if (events.length === 0) {
+                    select.innerHTML = '<option value="">No events available</option>';
+                    return;
+                }
+
+                select.innerHTML = '<option value="">-- Choose an Event --</option>' +
+                    events.map(e => `<option value="${e.id}">${e.title} (${new Date(e.date).toLocaleDateString()})</option>`).join('');
+            } catch (err) {
+                select.innerHTML = '<option value="">Error loading events</option>';
+            }
+        }
+
+        async function loadRegistrations(eventId) {
+            const list = document.getElementById('registrations-list');
+            list.innerHTML = '<div class="loader" style="width: 20px; height: 20px;"></div>';
+
+            try {
+                const res = await fetch(`/api/registrations/event/${eventId}`);
+                const registrations = await res.json();
+
+                if (registrations.length === 0) {
+                    list.innerHTML = '<div class="alert" style="background: #f1f5f9; text-align: center;">No registrations yet.</div>';
+                    return;
+                }
+
+                list.innerHTML = registrations.map(r => `
+                    <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600;">${r.name}</div>
+                        <div style="font-size: 0.85rem; color: #64748b;">
+                            ${r.email} ${r.student_id ? `| ID: ${r.student_id}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = '<div class="alert alert-error">Failed to load registrations.</div>';
+            }
+        }
+    </script>
+</body>
+
+</html>

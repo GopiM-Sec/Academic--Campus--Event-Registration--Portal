@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Campus Events Portal</title>
+    <!-- Modern Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <header>
+        <nav>
+            <div class="logo">CampusPortal</div>
+            <div class="nav-links">
+                <a href="/index.html" class="active">Upcoming Events</a>
+                <a href="/admin.html">Admin Dashboard</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="text-center mb-2">
+            <h1>Discover Campus Events</h1>
+            <p>Join workshops, seminars, and social activities on campus.</p>
+        </div>
+
+        <div id="loader" class="loader"></div>
+        <div id="error-message" class="alert alert-error" style="display: none;"></div>
+        
+        <div id="events-container" class="events-grid">
+            <!-- Events will be populated here via JS -->
+        </div>
+
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchEvents();
+        });
+    </script>
+</body>
+</html>
